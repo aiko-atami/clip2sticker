@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 WORK_DIR=${WORK_DIR:-"$ROOT_DIR/build"}
 DIST_DIR=${DIST_DIR:-"$ROOT_DIR/dist"}
-FFMPEG_REF=${FFMPEG_REF:-n7.1}
-LIBVPX_REF=${LIBVPX_REF:-v1.14.1}
+FFMPEG_REF=${FFMPEG_REF:-n8.0}
+LIBVPX_REF=${LIBVPX_REF:-v1.16.0}
 
 mkdir -p "$WORK_DIR" "$DIST_DIR"
 
@@ -27,4 +27,3 @@ EMSCRIPTEN_VERSION=${EMSCRIPTEN_VERSION:-unknown} \
 node "$ROOT_DIR/scripts/generate-manifest.mjs" "$DIST_DIR"
 
 node "$ROOT_DIR/scripts/package-release.mjs" "$DIST_DIR"
-

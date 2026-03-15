@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: ${{ github.ref_name }}
-      FFMPEG_REF: n7.1
-      LIBVPX_REF: v1.14.1
-      EMSCRIPTEN_VERSION: 3.1.67
+      FFMPEG_REF: n8.0
+      LIBVPX_REF: v1.16.0
+      EMSCRIPTEN_VERSION: 4.0.22
     steps:
       - name: Check out repository
         uses: actions/checkout@v5

@@ -19,6 +19,7 @@ export CXX=em++
 export AR=emar
 export RANLIB=emranlib
 export NM=emnm
+export STRIP=emstrip
 export CFLAGS="$COMMON_CFLAGS"
 export CXXFLAGS="$COMMON_CFLAGS"
 export LDFLAGS="$COMMON_LDFLAGS"
@@ -44,12 +45,11 @@ emconfigure ./configure \
   --disable-autodetect \
   --disable-doc \
   --disable-debug \
+  --disable-stripping \
   --disable-network \
-  --enable-programs \
   --disable-ffplay \
   --disable-ffprobe \
   --disable-avdevice \
-  --disable-postproc \
   --disable-swresample \
   --disable-swscale-alpha \
   --disable-bsfs \
@@ -69,7 +69,7 @@ emconfigure ./configure \
   --enable-decoder=h264 \
   --enable-decoder=hevc \
   --disable-encoders \
-  --enable-encoder=libvpx-vp9 \
+  --enable-encoder=libvpx_vp9 \
   --disable-filters \
   --enable-filter=fps \
   --enable-filter=scale \
@@ -96,22 +96,29 @@ emcc \
   -s EXPORTED_RUNTIME_METHODS=FS,callMain \
   -s EXPORT_NAME=createFFmpegCore \
   -o "$OUTPUT_DIR/ffmpeg-core.js" \
-  fftools/ffmpeg.c \
-  fftools/cmdutils.c \
-  fftools/opt_common.c \
-  fftools/ffmpeg_opt.c \
-  fftools/ffmpeg_filter.c \
-  fftools/ffmpeg_hw.c \
-  fftools/ffmpeg_mux_init.c \
-  fftools/ffmpeg_demux.c \
-  fftools/ffmpeg_dec.c \
-  fftools/ffmpeg_enc.c \
-  fftools/ffmpeg_sched.c \
-  fftools/sync_queue.c \
-  -I. \
+  fftools/cmdutils.o \
+  fftools/ffmpeg.o \
+  fftools/ffmpeg_dec.o \
+  fftools/ffmpeg_demux.o \
+  fftools/ffmpeg_enc.o \
+  fftools/ffmpeg_filter.o \
+  fftools/ffmpeg_hw.o \
+  fftools/ffmpeg_mux.o \
+  fftools/ffmpeg_mux_init.o \
+  fftools/ffmpeg_opt.o \
+  fftools/ffmpeg_sched.o \
+  fftools/objpool.o \
+  fftools/opt_common.o \
+  fftools/sync_queue.o \
+  fftools/thread_queue.o \
   -L"$PREFIX_DIR/lib" \
   libavcodec/libavcodec.a \
   libavformat/libavformat.a \
   libavfilter/libavfilter.a \
+  libswscale/libswscale.a \
   libavutil/libavutil.a \
   "$PREFIX_DIR/lib/libvpx.a"
+
+if [[ -f "$OUTPUT_DIR/ffmpeg-core.worker.mjs" && ! -f "$OUTPUT_DIR/ffmpeg-core.worker.js" ]]; then
+  mv "$OUTPUT_DIR/ffmpeg-core.worker.mjs" "$OUTPUT_DIR/ffmpeg-core.worker.js"
+fi
