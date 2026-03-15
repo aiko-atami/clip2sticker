@@ -48,10 +48,7 @@ cd "$SOURCE_DIR"
   --disable-vp8 \
   --disable-vp8-encoder \
   --disable-vp8-decoder \
-  --disable-vp9-decoder \
-  --extra-cflags="$COMMON_CFLAGS" \
-  --extra-cxxflags="$COMMON_CFLAGS" \
-  --extra-ldflags="$COMMON_LDFLAGS"
+  --disable-vp9-decoder
 
 emmake make -j"$(nproc)"
 emmake make install
