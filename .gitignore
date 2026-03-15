@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+artifacts/
+build/
+vendor/
+tmp/
+.DS_Store
+

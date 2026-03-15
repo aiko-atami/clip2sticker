@@ -1,0 +1,58 @@
+name: release-core
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ github.ref_name }}
+      FFMPEG_REF: n7.1
+      LIBVPX_REF: v1.14.1
+      EMSCRIPTEN_VERSION: 3.1.67
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t clip2sticker-core-build .
+
+      - name: Run release build
+        run: >
+          docker run --rm
+          -e RELEASE_VERSION
+          -e FFMPEG_REF
+          -e LIBVPX_REF
+          -e EMSCRIPTEN_VERSION
+          -v "$PWD:/workspace"
+          -w /workspace
+          clip2sticker-core-build
+          bash ./scripts/release-build.sh
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clip2sticker-core-${{ github.ref_name }}
+          path: |
+            dist/ffmpeg-core.js
+            dist/ffmpeg-core.wasm
+            dist/ffmpeg-core.worker.js
+            dist/manifest.json
+            dist/SHA256SUMS
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ffmpeg-core.js
+            dist/ffmpeg-core.wasm
+            dist/ffmpeg-core.worker.js
+            dist/manifest.json
+            dist/SHA256SUMS
+
