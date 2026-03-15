@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: write
 
@@ -18,7 +21,7 @@ jobs:
       EMSCRIPTEN_VERSION: 3.1.67
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Docker image
         run: docker build -t clip2sticker-core-build .
@@ -36,7 +39,7 @@ jobs:
           bash ./scripts/release-build.sh
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: clip2sticker-core-${{ github.ref_name }}
           path: |
@@ -55,4 +58,3 @@ jobs:
             dist/ffmpeg-core.worker.js
             dist/manifest.json
             dist/SHA256SUMS
-
