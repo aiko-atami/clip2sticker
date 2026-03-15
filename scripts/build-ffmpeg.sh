@@ -83,6 +83,16 @@ emconfigure ./configure \
 
 emmake make -j"$(nproc)"
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+mapfile -t FFMPEG_OBJECTS < <(
+  node "$SCRIPT_DIR/resolve-ffmpeg-objs.mjs" "$SOURCE_DIR/fftools/Makefile"
+)
+
+if [[ ${#FFMPEG_OBJECTS[@]} -eq 0 ]]; then
+  echo "failed to resolve FFmpeg object list from fftools/Makefile" >&2
+  exit 1
+fi
+
 emcc \
   -O3 \
   -msimd128 \
@@ -96,21 +106,7 @@ emcc \
   -s EXPORTED_RUNTIME_METHODS=FS,callMain \
   -s EXPORT_NAME=createFFmpegCore \
   -o "$OUTPUT_DIR/ffmpeg-core.js" \
-  fftools/cmdutils.o \
-  fftools/ffmpeg.o \
-  fftools/ffmpeg_dec.o \
-  fftools/ffmpeg_demux.o \
-  fftools/ffmpeg_enc.o \
-  fftools/ffmpeg_filter.o \
-  fftools/ffmpeg_hw.o \
-  fftools/ffmpeg_mux.o \
-  fftools/ffmpeg_mux_init.o \
-  fftools/ffmpeg_opt.o \
-  fftools/ffmpeg_sched.o \
-  fftools/objpool.o \
-  fftools/opt_common.o \
-  fftools/sync_queue.o \
-  fftools/thread_queue.o \
+  "${FFMPEG_OBJECTS[@]}" \
   -L"$PREFIX_DIR/lib" \
   libavcodec/libavcodec.a \
   libavformat/libavformat.a \
@@ -119,6 +115,17 @@ emcc \
   libavutil/libavutil.a \
   "$PREFIX_DIR/lib/libvpx.a"
 
-if [[ -f "$OUTPUT_DIR/ffmpeg-core.worker.mjs" && ! -f "$OUTPUT_DIR/ffmpeg-core.worker.js" ]]; then
-  mv "$OUTPUT_DIR/ffmpeg-core.worker.mjs" "$OUTPUT_DIR/ffmpeg-core.worker.js"
+if [[ ! -f "$OUTPUT_DIR/ffmpeg-core.js" ]]; then
+  echo "expected ffmpeg-core.js to be produced" >&2
+  exit 1
+fi
+
+if [[ ! -f "$OUTPUT_DIR/ffmpeg-core.wasm" ]]; then
+  echo "expected ffmpeg-core.wasm to be produced" >&2
+  exit 1
+fi
+
+if [[ ! -f "$OUTPUT_DIR/ffmpeg-core.worker.js" ]]; then
+  echo "expected ffmpeg-core.worker.js to be produced" >&2
+  exit 1
 fi

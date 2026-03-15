@@ -2,15 +2,17 @@
 
 ## Status
 
-The local FFmpeg WASM build path was reproduced through Docker against the updated 2026 baseline, but it is not yet fully stabilized end-to-end.
+The local FFmpeg WASM build path is now reproducible in the current working tree, and the remaining inconsistencies are primarily documentation and maintenance-shape issues rather than a proven hard build blocker.
 
-Confirmed as of the latest local Docker run:
+Confirmed in the current repository state on 2026-03-15:
 
 - Docker image builds successfully with the updated Emscripten base image.
 - `libvpx v1.16.0` builds successfully under Emscripten and installs its headers and static archive.
-- `FFmpeg n8.0` `configure` now starts and completes past the old option-validation failure.
-- `FFmpeg n8.0` `make` progresses through library and `fftools` compilation.
-- The current failure point is the repository's manual final `emcc` link step.
+- `FFmpeg n8.0` `configure` completes with the current script flags.
+- `FFmpeg n8.0` `make` produces browser-targeted artifacts in `build/ffmpeg/`, including `ffmpeg`, `ffmpeg_g.wasm`, and `ffmpeg_g.worker.js`.
+- The repository's release flow currently produces `dist/ffmpeg-core.js`, `dist/ffmpeg-core.wasm`, `dist/ffmpeg-core.worker.js`, `manifest.json`, and `SHA256SUMS`.
+- The repository no longer hand-maintains the final `fftools/*.o` list; it derives that list from FFmpeg's generated `fftools/Makefile`.
+- `npm test` passes against those artifacts.
 
 Confirmed validation steps:
 
@@ -18,11 +20,11 @@ Confirmed validation steps:
 - `docker run --rm -e RELEASE_VERSION=dev -e FFMPEG_REF=n8.0 -e LIBVPX_REF=v1.16.0 -e EMSCRIPTEN_VERSION=4.0.22 -v "$PWD:/workspace" -w /workspace clip2sticker-core-build bash ./scripts/release-build.sh`
 - `npm test`
 
-Current observed blocking error:
+Earlier investigation captured a blocking error around:
 
 - `emcc: error: fftools/objpool.o: No such file or directory`
 
-This happens after `FFmpeg` itself has already been configured and built. The failure is in the repository-maintained object list used for the final browser-targeted link.
+That failure mode is now addressed structurally: the build no longer relies on a stale hard-coded object list.
 
 ## Locked Versions
 
@@ -60,7 +62,7 @@ The important directories are:
 - `build/prefix`: intermediate install prefix for headers and static libs
 - `dist`: release-ready artifacts
 
-When reproducing locally for validation, using `/tmp` for `WORK_DIR` and `DIST_DIR` is safer than reusing repository-local `build/`, because `scripts/release-build.sh` does not refresh existing source checkouts automatically.
+`scripts/release-build.sh` now refreshes both upstream repositories to the pinned refs and cleans stale build products before rebuilding. Using `/tmp` for `WORK_DIR` and `DIST_DIR` is still a useful isolation pattern, but it is no longer required just to avoid stale checkout state.
 
 ## Why Docker Is the Primary Local Path
 
@@ -169,7 +171,7 @@ This was the first concrete upgrade breakage observed during the local Docker ru
 
 ### 6. Final link uses compiled FFmpeg objects, not raw `fftools/*.c`
 
-This remains the intended structure, but the object list is no longer current for `FFmpeg n8.0`.
+This remains the intended structure, and the repository now derives the object list from FFmpeg's generated build metadata instead of maintaining it manually.
 
 The old approach manually recompiled selected `fftools/*.c` files in the final `emcc` call.
 
@@ -190,14 +192,47 @@ Why this is correct:
 - this caused a real failure around `stdbit.h`: the raw compile path did not faithfully reuse the configuration state already validated by FFmpeg's own build system
 - linking already built object files preserves the exact compile decisions made by FFmpeg
 
-That approach was a stabilization win for the older baseline, but `FFmpeg 8.0` changed the set of generated `fftools` objects. The repository still links a manually curated subset, and that list now diverges from upstream.
+The authoritative source is `build/ffmpeg/fftools/Makefile`, which currently expands the pinned baseline link graph to:
 
-Current evidence from `FFmpeg 8.0`:
+- `fftools/cmdutils.o`
+- `fftools/ffmpeg.o`
+- `fftools/ffmpeg_dec.o`
+- `fftools/ffmpeg_demux.o`
+- `fftools/ffmpeg_enc.o`
+- `fftools/ffmpeg_filter.o`
+- `fftools/ffmpeg_hw.o`
+- `fftools/ffmpeg_mux.o`
+- `fftools/ffmpeg_mux_init.o`
+- `fftools/ffmpeg_opt.o`
+- `fftools/ffmpeg_sched.o`
+- `fftools/graph/graphprint.o`
+- `fftools/opt_common.o`
+- `fftools/resources/resman.o`
+- `fftools/resources/graph.html.o`
+- `fftools/resources/graph.css.o`
+- `fftools/sync_queue.o`
+- `fftools/textformat/avtextformat.o`
+- `fftools/textformat/tf_compact.o`
+- `fftools/textformat/tf_default.o`
+- `fftools/textformat/tf_flat.o`
+- `fftools/textformat/tf_ini.o`
+- `fftools/textformat/tf_json.o`
+- `fftools/textformat/tf_mermaid.o`
+- `fftools/textformat/tf_xml.o`
+- `fftools/textformat/tw_avio.o`
+- `fftools/textformat/tw_buffer.o`
+- `fftools/textformat/tw_stdout.o`
+- `fftools/thread_queue.o`
 
-- `fftools/objpool.o` is gone
-- additional `fftools/graph/*`, `fftools/textformat/*`, and `fftools/resources/*` objects are now part of the program build
+The build now follows that upstream-generated list automatically:
 
-This means the final link stage must be updated to track the actual `OBJS-ffmpeg` set for the pinned FFmpeg release, or replaced with a less brittle linkage strategy.
+- `scripts/resolve-ffmpeg-objs.mjs` reads `OBJS-ffmpeg` from `fftools/Makefile`
+- it follows included makefiles such as `fftools/resources/Makefile`
+- it expands nested references such as `$(OBJS-resman)`
+- it prepends the `DOFFTOOL` objects (`cmdutils.o`, `ffmpeg.o`, `opt_common.o`) that FFmpeg links for the `ffmpeg` program target
+- `scripts/build-ffmpeg.sh` passes that resolved list into the final `emcc` link
+
+This removes the old maintenance hazard where the repository duplicated upstream `OBJS-ffmpeg` by hand.
 
 ### 7. Included `libswscale.a` in the final link
 
@@ -209,30 +244,24 @@ Why:
 
 ## Worker Artifact Naming
 
-After the final `emcc` link, the toolchain produced:
+After the final `emcc` link, this repository expects:
 
 - `ffmpeg-core.js`
 - `ffmpeg-core.wasm`
-- `ffmpeg-core.worker.mjs`
-
-But this repository's runtime and packaging contract expects:
-
 - `ffmpeg-core.worker.js`
 
-The script now normalizes the name by renaming:
-
-- `ffmpeg-core.worker.mjs` -> `ffmpeg-core.worker.js`
-
-Why this is done in the build script:
+Why that exact output matters:
 
 - `src/runtime-worker.js`
 - `scripts/generate-manifest.mjs`
 - `scripts/package-release.mjs`
 - `.github/workflows/release.yml`
 
-all already assume the `.worker.js` name.
+all assume the `.worker.js` name.
 
-Normalizing the artifact at build time is the smallest change that preserves the existing contract everywhere else in the repository.
+The build script now validates that the expected `.js` worker artifact exists instead of renaming alternate outputs after the fact.
+
+Fresh Emscripten documentation still matters here: `EXPORT_ES6` requires `MODULARIZE`, and `.mjs` output suffixes imply `EXPORT_ES6`. That is useful context when debugging Emscripten output naming, but this repository's fresh path is to emit `ffmpeg-core.js` and `ffmpeg-core.worker.js` directly and fail fast if that contract changes.
 
 ## Current FFmpeg Feature Scope
 
@@ -267,16 +296,32 @@ Why this narrow scope is desirable:
 
 ## Upgrade Findings
 
-The update from `FFmpeg n7.1` to `n8.0` exposed two concrete incompatibilities:
+The update from `FFmpeg n7.1` to `n8.0` exposed one confirmed incompatibility and one build-system maintenance lesson:
 
 1. `FFmpeg configure` no longer accepts `--disable-postproc`.
-2. The manual final `emcc` object list is stale relative to `FFmpeg 8.0`.
+2. The final browser-targeted link should follow FFmpeg's generated `fftools/Makefile`, not a repository-local handwritten `fftools/*.o` list.
 
 There is also a follow-up warning during `configure`:
 
 - `WARNING: Disabled libvpx_vp9_encoder because`
 
-That warning did not block `make`, but it strongly suggests there is still a second-stage integration issue around `libvpx` detection or encoder enablement that needs to be addressed after the object-list mismatch is fixed.
+That warning did not block `make`, but it is still worth verifying with `ffbuild/config.log` and the generated `config.h` / `config_components.h` before treating the encoder path as fully settled.
+
+## Fresh Documentation Cross-Check
+
+The current conclusions above were checked against recent official documentation and upstream sources:
+
+- Emscripten "Building Projects":
+  https://emscripten.org/docs/compiling/Building-Projects.html
+  This explicitly recommends `emconfigure ./configure`, `emmake make`, and then a final `emcc ... -o project.js` step when the build system itself does not emit the desired JS/WASM launcher shape.
+- Emscripten settings reference:
+  https://emscripten.org/docs/tools_reference/settings_reference.html
+  `EXPORT_ES6` requires `MODULARIZE` and is implicitly enabled for `.mjs` output suffixes, which explains the worker naming difference.
+- FFmpeg upstream source:
+  in the local `n8.0` checkout, `build/ffmpeg/fftools/Makefile` remains the authoritative source for `OBJS-ffmpeg`, and `build/ffmpeg/Makefile` links `%_g` executables from `$(OBJS-$*)`.
+- FFmpeg upstream mailing list:
+  https://ffmpeg.org/pipermail/ffmpeg-devel/2025-May/343193.html
+  The removal of `libpostproc` explains why `--disable-postproc` is no longer a safe configure flag assumption on the modern baseline.
 
 ## Reproducible Local Runbook
 
@@ -295,7 +340,7 @@ docker run --rm \
   bash ./scripts/release-build.sh
 ```
 
-For a clean verification run that avoids stale source checkouts:
+For an isolated verification run using throwaway paths:
 
 ```bash
 docker run --rm \
@@ -342,7 +387,7 @@ That is the correct shape for CI because it reuses the same build entrypoint as 
 These are accepted for now:
 
 - `--arch=x86_32` looks counterintuitive for wasm, but the current stabilized configuration works with it and should not be changed casually without a fresh full verification
-- the final worker artifact is renamed post-build instead of changing the broader runtime contract
+- the final link still remains repository-owned because the runtime contract needs `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegCore`, and the package-specific asset names
 - FFmpeg build output still emits warnings; they do not currently block successful artifact generation
 
 ## What Should Not Be Changed Blindly
@@ -360,6 +405,8 @@ Any of those changes can invalidate the local proof of reproducibility. If one m
 
 ## Bottom Line
 
-The build is stable because the pipeline now follows one consistent rule:
+The current local baseline is materially healthier than the earlier notes suggest.
 
-use Emscripten toolchain end-to-end, let FFmpeg's own build system decide the compile graph, and only package artifacts that match the repository's runtime contract.
+The practical rule is:
+
+use Emscripten end-to-end, treat FFmpeg's generated makefiles as the source of truth for the `ffmpeg` object graph, and keep the repository-specific final packaging step only for runtime-contract differences such as `MODULARIZE`, `EXPORT_NAME`, and worker filename normalization.

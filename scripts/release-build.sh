@@ -9,13 +9,24 @@ LIBVPX_REF=${LIBVPX_REF:-v1.16.0}
 
 mkdir -p "$WORK_DIR" "$DIST_DIR"
 
-if [[ ! -d "$WORK_DIR/libvpx" ]]; then
-  git clone --depth 1 --branch "$LIBVPX_REF" https://chromium.googlesource.com/webm/libvpx "$WORK_DIR/libvpx"
-fi
+refresh_checkout() {
+  local repo_url=$1
+  local repo_ref=$2
+  local repo_dir=$3
 
-if [[ ! -d "$WORK_DIR/ffmpeg" ]]; then
-  git clone --depth 1 --branch "$FFMPEG_REF" https://github.com/FFmpeg/FFmpeg.git "$WORK_DIR/ffmpeg"
-fi
+  if [[ ! -d "$repo_dir/.git" ]]; then
+    rm -rf "$repo_dir"
+    git clone --depth 1 --branch "$repo_ref" "$repo_url" "$repo_dir"
+    return
+  fi
+
+  git -C "$repo_dir" fetch --depth 1 origin "$repo_ref"
+  git -C "$repo_dir" checkout --force FETCH_HEAD
+  git -C "$repo_dir" clean -fdx
+}
+
+refresh_checkout "https://chromium.googlesource.com/webm/libvpx" "$LIBVPX_REF" "$WORK_DIR/libvpx"
+refresh_checkout "https://github.com/FFmpeg/FFmpeg.git" "$FFMPEG_REF" "$WORK_DIR/ffmpeg"
 
 "$ROOT_DIR/scripts/build-libvpx.sh" "$WORK_DIR/libvpx" "$WORK_DIR/prefix"
 "$ROOT_DIR/scripts/build-ffmpeg.sh" "$WORK_DIR/ffmpeg" "$WORK_DIR/prefix" "$DIST_DIR"

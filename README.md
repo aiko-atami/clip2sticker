@@ -61,9 +61,50 @@ The release workflow will:
 
 1. Build `libvpx`
 2. Build `FFmpeg`
-3. Produce `ffmpeg-core.js`, `ffmpeg-core.wasm`, `ffmpeg-core.worker.js`
-4. Generate `manifest.json` and `SHA256SUMS`
-5. Publish the files as GitHub Release assets
+3. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
+4. Produce `ffmpeg-core.js`, `ffmpeg-core.wasm`, `ffmpeg-core.worker.js`
+5. Generate `manifest.json` and `SHA256SUMS`
+6. Publish the files as GitHub Release assets
+
+## Build strategy
+
+The WASM bundle is built in two layers:
+
+- `emconfigure ./configure` + `emmake make` let FFmpeg decide the compile graph for the pinned release.
+- a repository-owned final `emcc` link adds the runtime contract required by this package: `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegCore`, and the exact asset names expected by the JS runtime.
+- `scripts/release-build.sh` refreshes both upstream checkouts to the exact pinned refs and cleans stale build products before rebuilding.
+
+The important source of truth is FFmpeg's generated `fftools/Makefile`.
+
+- `scripts/resolve-ffmpeg-objs.mjs` reads `OBJS-ffmpeg` from that file
+- `scripts/build-ffmpeg.sh` uses that resolved list instead of a hand-maintained legacy list of `fftools/*.o`
+
+This keeps the local packaging layer explicit without forking FFmpeg's internal object graph by hand.
+
+## Local build
+
+Build the same containerized path used in CI:
+
+```bash
+docker build -t clip2sticker-core-build .
+docker run --rm \
+  -e RELEASE_VERSION=dev \
+  -e FFMPEG_REF=n8.0 \
+  -e LIBVPX_REF=v1.16.0 \
+  -e EMSCRIPTEN_VERSION=4.0.22 \
+  -v "$PWD:/workspace" \
+  -w /workspace \
+  clip2sticker-core-build \
+  bash ./scripts/release-build.sh
+```
+
+The release script is expected to leave:
+
+- `dist/ffmpeg-core.js`
+- `dist/ffmpeg-core.wasm`
+- `dist/ffmpeg-core.worker.js`
+- `dist/manifest.json`
+- `dist/SHA256SUMS`
 
 ## SharedArrayBuffer requirements
 
@@ -81,4 +122,3 @@ npm test
 ```
 
 The tests do not build FFmpeg; they verify the JS runtime contract and release metadata generation.
-
