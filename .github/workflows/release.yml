@@ -38,6 +38,16 @@ jobs:
           clip2sticker-core-build
           bash ./scripts/release-build.sh
 
+      - name: Upload configure logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: configure-logs-${{ github.ref_name }}
+          path: |
+            build/ffmpeg/config.log
+            build/libvpx/config.log
+          if-no-files-found: ignore
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
         with:

@@ -10,12 +10,18 @@ SOURCE_DIR=$1
 PREFIX_DIR=$2
 OUTPUT_DIR=$3
 
+COMMON_CFLAGS="-O3 -msimd128 -pthread"
+COMMON_LDFLAGS="-O3 -msimd128 -pthread -sUSE_PTHREADS=1"
+
 export PKG_CONFIG_PATH="$PREFIX_DIR/lib/pkgconfig"
 export CC=emcc
 export CXX=em++
 export AR=emar
 export RANLIB=emranlib
 export NM=emnm
+export CFLAGS="$COMMON_CFLAGS"
+export CXXFLAGS="$COMMON_CFLAGS"
+export LDFLAGS="$COMMON_LDFLAGS"
 
 mkdir -p "$OUTPUT_DIR"
 cd "$SOURCE_DIR"
@@ -30,17 +36,16 @@ emconfigure ./configure \
   --ar=emar \
   --ranlib=emranlib \
   --nm=emnm \
-  --extra-cflags="-O3 -msimd128 -pthread -I$PREFIX_DIR/include" \
-  --extra-cxxflags="-O3 -msimd128 -pthread -I$PREFIX_DIR/include" \
-  --extra-ldflags="-O3 -msimd128 -pthread -L$PREFIX_DIR/lib" \
+  --extra-cflags="$COMMON_CFLAGS -I$PREFIX_DIR/include" \
+  --extra-cxxflags="$COMMON_CFLAGS -I$PREFIX_DIR/include" \
+  --extra-ldflags="$COMMON_LDFLAGS -L$PREFIX_DIR/lib" \
   --pkg-config-flags="--static" \
   --disable-everything \
   --disable-autodetect \
   --disable-doc \
   --disable-debug \
   --disable-network \
-  --disable-programs \
-  --enable-ffmpeg \
+  --enable-programs \
   --disable-ffplay \
   --disable-ffprobe \
   --disable-avdevice \
@@ -52,6 +57,7 @@ emconfigure ./configure \
   --disable-devices \
   --disable-protocols \
   --enable-protocol=file \
+  --disable-asm \
   --disable-muxers \
   --enable-muxer=webm \
   --disable-demuxers \
@@ -108,5 +114,4 @@ emcc \
   libavformat/libavformat.a \
   libavfilter/libavfilter.a \
   libavutil/libavutil.a \
-  libswscale/libswscale.a \
   "$PREFIX_DIR/lib/libvpx.a"
