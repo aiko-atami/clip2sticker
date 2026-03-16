@@ -27,6 +27,12 @@ export LDFLAGS="$COMMON_LDFLAGS"
 mkdir -p "$OUTPUT_DIR"
 cd "$SOURCE_DIR"
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PKG_CONFIG_BIN=${PKG_CONFIG:-pkg-config}
+if ! command -v "$PKG_CONFIG_BIN" >/dev/null 2>&1; then
+  PKG_CONFIG_BIN="$SCRIPT_DIR/pkg-config-lite.mjs"
+fi
+
 emconfigure ./configure \
   --enable-cross-compile \
   --target-os=none \
@@ -40,6 +46,7 @@ emconfigure ./configure \
   --extra-cflags="$COMMON_CFLAGS -I$PREFIX_DIR/include" \
   --extra-cxxflags="$COMMON_CFLAGS -I$PREFIX_DIR/include" \
   --extra-ldflags="$COMMON_LDFLAGS -L$PREFIX_DIR/lib" \
+  --pkg-config="$PKG_CONFIG_BIN" \
   --pkg-config-flags="--static" \
   --disable-everything \
   --disable-autodetect \
@@ -83,7 +90,6 @@ emconfigure ./configure \
 
 emmake make -j"$(nproc)"
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 mapfile -t FFMPEG_OBJECTS < <(
   node "$SCRIPT_DIR/resolve-ffmpeg-objs.mjs" "$SOURCE_DIR/fftools/Makefile"
 )
@@ -122,10 +128,5 @@ fi
 
 if [[ ! -f "$OUTPUT_DIR/ffmpeg-core.wasm" ]]; then
   echo "expected ffmpeg-core.wasm to be produced" >&2
-  exit 1
-fi
-
-if [[ ! -f "$OUTPUT_DIR/ffmpeg-core.worker.js" ]]; then
-  echo "expected ffmpeg-core.worker.js to be produced" >&2
   exit 1
 fi

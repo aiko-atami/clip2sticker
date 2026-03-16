@@ -45,8 +45,9 @@ The runtime expects the following files to be hosted under `coreBaseUrl`:
 
 - `ffmpeg-core.js`
 - `ffmpeg-core.wasm`
-- `ffmpeg-core.worker.js`
 - `manifest.json`
+
+With `Emscripten 5.x`, pthread workers are loaded from `ffmpeg-core.js` itself, so there is no separate `ffmpeg-core.worker.js` asset anymore.
 
 ## Release flow
 
@@ -62,7 +63,7 @@ The release workflow will:
 1. Build `libvpx`
 2. Build `FFmpeg`
 3. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
-4. Produce `ffmpeg-core.js`, `ffmpeg-core.wasm`, `ffmpeg-core.worker.js`
+4. Produce `ffmpeg-core.js` and `ffmpeg-core.wasm`
 5. Generate `manifest.json` and `SHA256SUMS`
 6. Publish the files as GitHub Release assets
 
@@ -91,7 +92,7 @@ docker run --rm \
   -e RELEASE_VERSION=dev \
   -e FFMPEG_REF=n8.0 \
   -e LIBVPX_REF=v1.16.0 \
-  -e EMSCRIPTEN_VERSION=4.0.22 \
+  -e EMSCRIPTEN_VERSION=5.0.2 \
   -v "$PWD:/workspace" \
   -w /workspace \
   clip2sticker-core-build \
@@ -102,7 +103,6 @@ The release script is expected to leave:
 
 - `dist/ffmpeg-core.js`
 - `dist/ffmpeg-core.wasm`
-- `dist/ffmpeg-core.worker.js`
 - `dist/manifest.json`
 - `dist/SHA256SUMS`
 

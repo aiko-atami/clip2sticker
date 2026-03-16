@@ -28,7 +28,7 @@ refresh_checkout() {
 refresh_checkout "https://chromium.googlesource.com/webm/libvpx" "$LIBVPX_REF" "$WORK_DIR/libvpx"
 refresh_checkout "https://github.com/FFmpeg/FFmpeg.git" "$FFMPEG_REF" "$WORK_DIR/ffmpeg"
 
-"$ROOT_DIR/scripts/build-libvpx.sh" "$WORK_DIR/libvpx" "$WORK_DIR/prefix"
+env -u DIST_DIR "$ROOT_DIR/scripts/build-libvpx.sh" "$WORK_DIR/libvpx" "$WORK_DIR/prefix"
 "$ROOT_DIR/scripts/build-ffmpeg.sh" "$WORK_DIR/ffmpeg" "$WORK_DIR/prefix" "$DIST_DIR"
 
 RELEASE_VERSION=${RELEASE_VERSION:-dev} \

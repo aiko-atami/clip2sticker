@@ -7,7 +7,7 @@ test("buildManifest records release metadata and runtime requirements", () => {
     version: "v0.1.0",
     ffmpegRef: "n8.0",
     libvpxRef: "v1.16.0",
-    emscriptenVersion: "4.0.22",
+    emscriptenVersion: "5.0.2",
     assetHashes: {
       "ffmpeg-core.js": "abc",
     },

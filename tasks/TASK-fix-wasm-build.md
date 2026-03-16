@@ -6,13 +6,12 @@ The repository now has a reproducible local release path for the pinned baseline
 
 - `FFmpeg`: `n8.0`
 - `libvpx`: `v1.16.0`
-- `Emscripten`: `4.0.22`
+- `Emscripten`: `5.0.2`
 
 The intended output set is:
 
 - `dist/ffmpeg-core.js`
 - `dist/ffmpeg-core.wasm`
-- `dist/ffmpeg-core.worker.js`
 - `dist/manifest.json`
 - `dist/SHA256SUMS`
 
@@ -71,7 +70,6 @@ The JS runtime continues to expect:
 
 - `ffmpeg-core.js`
 - `ffmpeg-core.wasm`
-- `ffmpeg-core.worker.js`
 
 The build now validates those outputs directly instead of renaming alternate worker artifacts after the fact.
 
@@ -85,7 +83,7 @@ docker run --rm \
   -e RELEASE_VERSION=dev \
   -e FFMPEG_REF=n8.0 \
   -e LIBVPX_REF=v1.16.0 \
-  -e EMSCRIPTEN_VERSION=4.0.22 \
+  -e EMSCRIPTEN_VERSION=5.0.2 \
   -v "$PWD:/workspace" \
   -w /workspace \
   clip2sticker-core-build \
