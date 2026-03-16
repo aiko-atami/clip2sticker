@@ -5,6 +5,7 @@ Core-only repository for building and distributing a minimal FFmpeg WebAssembly 
 ## What this repository contains
 
 - Reproducible `libvpx + FFmpeg` build scripts targeting `Emscripten`.
+- `Dockerfile + Makefile` build entrypoints for local and CI usage.
 - A thin browser runtime API without UI.
 - GitHub Actions release automation that publishes raw bundle assets.
 - Tests for command construction, manifest generation, and packaging metadata.
@@ -51,7 +52,9 @@ With `Emscripten 5.x`, pthread workers are loaded from `ffmpeg-core.js` itself, 
 
 ## Release flow
 
-Tag a commit and push the tag:
+Push to `main` or open a pull request to run CI.
+
+Tag a commit and push the tag to run the release workflow:
 
 ```bash
 git tag v0.1.0
@@ -60,12 +63,14 @@ git push origin v0.1.0
 
 The release workflow will:
 
-1. Build `libvpx`
-2. Build `FFmpeg`
-3. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
-4. Produce `ffmpeg-core.js` and `ffmpeg-core.wasm`
-5. Generate `manifest.json` and `SHA256SUMS`
-6. Publish the files as GitHub Release assets
+1. Run `npm test`
+2. Build the toolchain image with cached Docker layers
+3. Build `libvpx`
+4. Build `FFmpeg`
+5. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
+6. Produce `ffmpeg-core.js` and `ffmpeg-core.wasm`
+7. Generate `manifest.json` and `SHA256SUMS`
+8. Publish the files as workflow artifacts and GitHub Release assets
 
 ## Build strategy
 
@@ -73,12 +78,12 @@ The WASM bundle is built in two layers:
 
 - `emconfigure ./configure` + `emmake make` let FFmpeg decide the compile graph for the pinned release.
 - a repository-owned final `emcc` link adds the runtime contract required by this package: `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegCore`, and the exact asset names expected by the JS runtime.
-- `scripts/release-build.sh` refreshes both upstream checkouts to the exact pinned refs and cleans stale build products before rebuilding.
+- `make release` refreshes both upstream checkouts to the exact pinned refs, cleans stale release outputs, and rebuilds from scratch.
 
 The important source of truth is FFmpeg's generated `fftools/Makefile`.
 
 - `scripts/resolve-ffmpeg-objs.mjs` reads `OBJS-ffmpeg` from that file
-- `scripts/build-ffmpeg.sh` uses that resolved list instead of a hand-maintained legacy list of `fftools/*.o`
+- `make build-ffmpeg` uses that resolved list instead of a hand-maintained legacy list of `fftools/*.o`
 
 This keeps the local packaging layer explicit without forking FFmpeg's internal object graph by hand.
 
@@ -87,19 +92,16 @@ This keeps the local packaging layer explicit without forking FFmpeg's internal 
 Build the same containerized path used in CI:
 
 ```bash
-docker build -t clip2sticker-core-build .
-docker run --rm \
-  -e RELEASE_VERSION=dev \
-  -e FFMPEG_REF=n8.0 \
-  -e LIBVPX_REF=v1.16.0 \
-  -e EMSCRIPTEN_VERSION=5.0.2 \
-  -v "$PWD:/workspace" \
-  -w /workspace \
-  clip2sticker-core-build \
-  bash ./scripts/release-build.sh
+make docker-release RELEASE_VERSION=dev
 ```
 
-The release script is expected to leave:
+To run inside an already configured `emsdk` shell without Docker:
+
+```bash
+make release RELEASE_VERSION=dev
+```
+
+The release build is expected to leave:
 
 - `dist/ffmpeg-core.js`
 - `dist/ffmpeg-core.wasm`
@@ -118,7 +120,7 @@ This repository does not ship a UI, so host-specific header configuration stays 
 ## Local checks
 
 ```bash
-npm test
+make test
 ```
 
 The tests do not build FFmpeg; they verify the JS runtime contract and release metadata generation.

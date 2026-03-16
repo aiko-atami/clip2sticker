@@ -1,0 +1,9 @@
+.git
+.github
+.memory-bank
+node_modules
+build
+dist
+tmp
+artifacts
+coverage

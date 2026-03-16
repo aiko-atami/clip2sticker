@@ -27,7 +27,7 @@ That means:
 - `emconfigure ./configure` and `emmake make` remain the source of truth for FFmpeg internals
 - the repository must not hand-maintain a separate legacy list of `fftools/*.o`
 - the final link must derive `ffmpeg` objects from `fftools/Makefile`
-- each `scripts/release-build.sh` run must refresh upstream checkouts and clean stale build outputs before rebuilding
+- each `make release` run must refresh upstream checkouts and clean stale build outputs before rebuilding
 
 ## Source Of Truth
 
@@ -43,11 +43,11 @@ That helper:
 
 - reads the `OBJS-ffmpeg` block
 - prepends the `DOFFTOOL` objects used by FFmpeg's `ffmpeg` program target
-- emits the final object list for `scripts/build-ffmpeg.sh`
+- emits the final object list for `make build-ffmpeg`
 
 ## Why This Replaced The Old Approach
 
-The previous approach hard-coded the `fftools` object list inside `scripts/build-ffmpeg.sh`.
+The previous approach hard-coded the `fftools` object list inside the FFmpeg build step.
 
 That was fragile because:
 
@@ -87,7 +87,7 @@ docker run --rm \
   -v "$PWD:/workspace" \
   -w /workspace \
   clip2sticker-core-build \
-  bash ./scripts/release-build.sh
+  make docker-release RELEASE_VERSION=dev
 
 npm test
 ```
