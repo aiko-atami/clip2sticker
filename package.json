@@ -1,14 +1,15 @@
 {
-  "name": "clip2sticker-core",
+  "name": "clip2sticker",
   "version": "0.1.0",
-  "description": "Core-only FFmpeg WASM build and runtime for Telegram sticker conversion.",
-  "type": "module",
+  "description": "Browser app and reusable FFmpeg WASM core for Telegram sticker conversion.",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "node --test",
-    "test:unit": "node --test test/*.test.js",
-    "manifest": "node scripts/generate-manifest.mjs",
-    "package:release": "node scripts/package-release.mjs"
+    "test": "npm run test --workspace @clip2sticker/ffmpeg-core",
+    "test:core": "npm run test --workspace @clip2sticker/ffmpeg-core"
   }
 }
-

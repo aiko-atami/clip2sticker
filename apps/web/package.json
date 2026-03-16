@@ -1,0 +1,7 @@
+{
+  "name": "@clip2sticker/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "First-party browser UI for clip2sticker.",
+  "type": "module"
+}

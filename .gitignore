@@ -1,9 +1,12 @@
 node_modules/
-dist/
 coverage/
 artifacts/
-build/
 ffbuild/
 vendor/
 tmp/
 .DS_Store
+
+build/
+dist/
+packages/*/build/
+packages/*/dist/

@@ -1,145 +1,41 @@
-# clip2sticker core
+# clip2sticker
 
-Core-only repository for building and distributing a minimal FFmpeg WebAssembly bundle for Telegram animated sticker conversion.
+`clip2sticker` is a browser-first project for turning short videos into Telegram-ready animated stickers.
 
-## What this repository contains
+This repository now contains two distinct deliverables in one codebase:
 
-- Reproducible `libvpx + FFmpeg` build scripts targeting `Emscripten`.
-- `Dockerfile + Makefile` build entrypoints for local and CI usage.
-- A thin browser runtime API without UI.
-- GitHub Actions release automation that publishes raw bundle assets.
-- Tests for command construction, manifest generation, and packaging metadata.
+- `apps/web` contains the first-party frontend application.
+- `packages/ffmpeg-core` contains the reusable FFmpeg WebAssembly build, browser runtime, and downloadable release assets.
 
-## Baseline support
+This keeps the product and the infrastructure together without pretending the whole repository is only a WASM build pipeline.
 
-- Input containers: `MP4`, `MOV`
-- Input codecs: `H.264`, `HEVC`
-- Output container: `WebM`
-- Output codec: `VP9`
-- Audio: stripped
-- Duration policy: inputs longer than `3s` are sped up to `3s`; shorter inputs are left unchanged
-- Canvas modes: `contain`, `crop`
-- FPS presets: `15`, `20`, `24`, `30`
+## Repository layout
 
-`GIF` and `WebM` input are intentionally not included in the baseline build to keep the `.wasm` payload smaller.
-
-## Runtime API
-
-```js
-import { createClip2StickerCore } from "./src/index.js";
-
-const core = createClip2StickerCore({
-  coreBaseUrl: "/ffmpeg",
-});
-
-await core.load();
-
-const result = await core.transcode({
-  input: await file.arrayBuffer(),
-  inputName: file.name,
-  fitMode: "contain",
-  fps: 20,
-});
+```text
+apps/
+  web/                  official browser UI
+packages/
+  ffmpeg-core/          FFmpeg WASM build + runtime + release artifacts
 ```
 
-The runtime expects the following files to be hosted under `coreBaseUrl`:
+## Intended usage
+
+If you want the full product, start from `apps/web`.
+
+If you want to build your own UI, use `packages/ffmpeg-core` directly or download its release artifacts from GitHub Releases:
 
 - `ffmpeg-core.js`
 - `ffmpeg-core.wasm`
 - `manifest.json`
 
-With `Emscripten 5.x`, pthread workers are loaded from `ffmpeg-core.js` itself, so there is no separate `ffmpeg-core.worker.js` asset anymore.
+## Workspace commands
 
-## Release flow
-
-Push to `main` or open a pull request to run CI.
-
-Tag a commit and push the tag to run the release workflow:
+The root workspace keeps lightweight proxy commands for the core package:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The release workflow will:
-
-1. Run `npm test`
-2. Build the toolchain image with cached Docker layers
-3. Build `libvpx`
-4. Build `FFmpeg`
-5. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
-6. Produce `ffmpeg-core.js` and `ffmpeg-core.wasm`
-7. Generate `manifest.json` and `SHA256SUMS`
-8. Publish the files as workflow artifacts and GitHub Release assets
-
-`workflow_dispatch` can be used for a manual CI build without creating a GitHub Release. A real GitHub Release is created only for pushed tags matching `v*`.
-
-## Build strategy
-
-The WASM bundle is built in two layers:
-
-- `emconfigure ./configure` + `emmake make` let FFmpeg decide the compile graph for the pinned release.
-- a repository-owned final `emcc` link adds the runtime contract required by this package: `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegCore`, and the exact asset names expected by the JS runtime.
-- `make release` refreshes both upstream checkouts to the exact pinned refs, cleans stale release outputs, and rebuilds from scratch.
-
-The important source of truth is FFmpeg's generated `fftools/Makefile`.
-
-- `scripts/resolve-ffmpeg-objs.mjs` reads `OBJS-ffmpeg` from that file
-- `make build-ffmpeg` uses that resolved list instead of a hand-maintained legacy list of `fftools/*.o`
-
-This keeps the local packaging layer explicit without forking FFmpeg's internal object graph by hand.
-
-## Local build
-
-Build the same containerized path used in CI:
-
-```bash
+npm test
+make test
 make docker-release RELEASE_VERSION=dev
 ```
 
-To run inside an already configured `emsdk` shell without Docker:
-
-```bash
-make release RELEASE_VERSION=dev
-```
-
-The release build is expected to leave:
-
-- `dist/ffmpeg-core.js`
-- `dist/ffmpeg-core.wasm`
-- `dist/manifest.json`
-- `dist/SHA256SUMS`
-
-The release workflow also packages those files into `clip2sticker-core-<version>.tar.gz` for convenient downloading from GitHub Releases.
-
-## Downloading A Build
-
-Consumers of this repository do not need to build FFmpeg locally.
-
-1. Open the repository's GitHub Releases page.
-2. Download `clip2sticker-core-<version>.tar.gz` or the individual assets.
-3. Host the extracted files under one public directory.
-4. Point `coreBaseUrl` at that directory.
-
-The minimum runtime payload is:
-
-- `ffmpeg-core.js`
-- `ffmpeg-core.wasm`
-- `manifest.json`
-
-## SharedArrayBuffer requirements
-
-Projects consuming this bundle must serve:
-
-- `Cross-Origin-Opener-Policy: same-origin`
-- `Cross-Origin-Embedder-Policy: require-corp`
-
-This repository does not ship a UI, so host-specific header configuration stays in the consuming application.
-
-## Local checks
-
-```bash
-make test
-```
-
-The tests do not build FFmpeg; they verify the JS runtime contract and release metadata generation.
+For the package-specific build and release details, see [packages/ffmpeg-core/README.md](/home/xs/aiko/clip2sticker/packages/ffmpeg-core/README.md).

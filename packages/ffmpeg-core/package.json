@@ -1,0 +1,13 @@
+{
+  "name": "@clip2sticker/ffmpeg-core",
+  "version": "0.1.0",
+  "description": "Reusable FFmpeg WASM build and browser runtime for clip2sticker.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "test:unit": "node --test test/*.test.js",
+    "manifest": "node scripts/generate-manifest.mjs",
+    "package:release": "node scripts/package-release.mjs"
+  }
+}
