@@ -36,7 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      RELEASE_VERSION: ${{ github.ref_name || 'dev' }}
       FFMPEG_REF: n8.0
       LIBVPX_REF: v1.16.0
       EMSCRIPTEN_VERSION: 5.0.2
@@ -44,6 +43,22 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            release_version="${GITHUB_REF_NAME}"
+          else
+            release_version="manual-${GITHUB_SHA::12}"
+          fi
+
+          archive_name="clip2sticker-core-${release_version}.tar.gz"
+
+          {
+            echo "release_version=${release_version}"
+            echo "archive_name=${archive_name}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,13 +73,21 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run release build
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.release_version }}
         run: make docker-release SKIP_DOCKER_BUILD=1 DOCKER_IMAGE="$DOCKER_IMAGE"
+
+      - name: Verify release payload
+        run: node scripts/verify-release.mjs dist
+
+      - name: Package release archive
+        run: tar -C dist -czf "${{ steps.meta.outputs.archive_name }}" ffmpeg-core.js ffmpeg-core.wasm manifest.json SHA256SUMS
 
       - name: Upload configure logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: configure-logs-${{ github.ref_name }}
+          name: configure-logs-${{ steps.meta.outputs.release_version }}
           path: |
             build/ffmpeg/config.log
             build/libvpx/config.log
@@ -73,21 +96,28 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: clip2sticker-core-${{ github.ref_name }}
+          name: clip2sticker-core-${{ steps.meta.outputs.release_version }}
           path: |
             dist/ffmpeg-core.js
             dist/ffmpeg-core.wasm
             dist/manifest.json
             dist/SHA256SUMS
+            ${{ steps.meta.outputs.archive_name }}
           if-no-files-found: error
           retention-days: 14
 
       - name: Create GitHub release
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          name: clip2sticker-core ${{ steps.meta.outputs.release_version }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             dist/ffmpeg-core.js
             dist/ffmpeg-core.wasm
             dist/manifest.json
             dist/SHA256SUMS
+            ${{ steps.meta.outputs.archive_name }}
           fail_on_unmatched_files: true

@@ -72,6 +72,8 @@ The release workflow will:
 7. Generate `manifest.json` and `SHA256SUMS`
 8. Publish the files as workflow artifacts and GitHub Release assets
 
+`workflow_dispatch` can be used for a manual CI build without creating a GitHub Release. A real GitHub Release is created only for pushed tags matching `v*`.
+
 ## Build strategy
 
 The WASM bundle is built in two layers:
@@ -107,6 +109,23 @@ The release build is expected to leave:
 - `dist/ffmpeg-core.wasm`
 - `dist/manifest.json`
 - `dist/SHA256SUMS`
+
+The release workflow also packages those files into `clip2sticker-core-<version>.tar.gz` for convenient downloading from GitHub Releases.
+
+## Downloading A Build
+
+Consumers of this repository do not need to build FFmpeg locally.
+
+1. Open the repository's GitHub Releases page.
+2. Download `clip2sticker-core-<version>.tar.gz` or the individual assets.
+3. Host the extracted files under one public directory.
+4. Point `coreBaseUrl` at that directory.
+
+The minimum runtime payload is:
+
+- `ffmpeg-core.js`
+- `ffmpeg-core.wasm`
+- `manifest.json`
 
 ## SharedArrayBuffer requirements
 

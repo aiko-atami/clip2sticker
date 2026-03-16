@@ -1,0 +1,21 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Core Runtime
+      labels:
+        - runtime
+        - api
+    - title: Build And Release
+      labels:
+        - build
+        - release
+        - ci
+    - title: Tests And Tooling
+      labels:
+        - test
+        - tooling
+    - title: Other Changes
+      labels:
+        - "*"
