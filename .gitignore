@@ -3,7 +3,7 @@ dist/
 coverage/
 artifacts/
 build/
+ffbuild/
 vendor/
 tmp/
 .DS_Store
-
