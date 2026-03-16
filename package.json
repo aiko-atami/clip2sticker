@@ -1,15 +1,13 @@
 {
-  "name": "clip2sticker",
-  "version": "0.1.0",
-  "description": "Browser app and reusable FFmpeg WASM core for Telegram sticker conversion.",
-  "private": true,
-  "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "test": "npm run test --workspace @clip2sticker/ffmpeg-core",
-    "test:core": "npm run test --workspace @clip2sticker/ffmpeg-core"
-  }
+    "name": "clip2sticker",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "test": "npm run test --workspace @clip2sticker/ffmpeg",
+        "test:ffmpeg": "npm run test --workspace @clip2sticker/ffmpeg"
+    }
 }

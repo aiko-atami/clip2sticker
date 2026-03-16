@@ -19,13 +19,13 @@ function toWorkerUrl(baseUrl, filename) {
   return new URL(filename, normalized).toString();
 }
 
-export function createClip2StickerCore({
-  coreBaseUrl,
+export function createClip2StickerFFmpeg({
+  ffmpegBaseUrl,
   workerFactory,
   threads = 2,
 } = {}) {
-  if (!coreBaseUrl && !workerFactory) {
-    throw new Error("coreBaseUrl or workerFactory is required");
+  if (!ffmpegBaseUrl && !workerFactory) {
+    throw new Error("ffmpegBaseUrl or workerFactory is required");
   }
 
   let worker;
@@ -39,7 +39,7 @@ export function createClip2StickerCore({
 
     worker = workerFactory
       ? workerFactory()
-      : new Worker(toWorkerUrl(coreBaseUrl, "runtime-worker.js"), {
+      : new Worker(toWorkerUrl(ffmpegBaseUrl, "runtime-worker.js"), {
           type: "module",
         });
 
@@ -78,7 +78,7 @@ export function createClip2StickerCore({
   return {
     async load() {
       return callWorker("load", {
-        coreBaseUrl,
+        ffmpegBaseUrl,
         threads,
       });
     },
@@ -134,4 +134,3 @@ export function createClip2StickerCore({
     },
   };
 }
-

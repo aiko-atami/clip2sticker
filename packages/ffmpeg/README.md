@@ -1,4 +1,4 @@
-# @clip2sticker/ffmpeg-core
+# @clip2sticker/ffmpeg
 
 Reusable FFmpeg WebAssembly build and browser runtime for `clip2sticker`.
 
@@ -28,15 +28,15 @@ This package is only one part of the repository. The product itself lives at the
 ## Runtime API
 
 ```js
-import { createClip2StickerCore } from "./src/index.js";
+import { createClip2StickerFFmpeg } from "./src/index.js";
 
-const core = createClip2StickerCore({
-  coreBaseUrl: "/ffmpeg",
+const ffmpeg = createClip2StickerFFmpeg({
+  ffmpegBaseUrl: "/ffmpeg",
 });
 
-await core.load();
+await ffmpeg.load();
 
-const result = await core.transcode({
+const result = await ffmpeg.transcode({
   input: await file.arrayBuffer(),
   inputName: file.name,
   fitMode: "contain",
@@ -44,13 +44,13 @@ const result = await core.transcode({
 });
 ```
 
-The runtime expects the following files to be hosted under `coreBaseUrl`:
+The runtime expects the following files to be hosted under `ffmpegBaseUrl`:
 
-- `ffmpeg-core.js`
-- `ffmpeg-core.wasm`
+- `ffmpeg.js`
+- `ffmpeg.wasm`
 - `manifest.json`
 
-With `Emscripten 5.x`, pthread workers are loaded from `ffmpeg-core.js` itself, so there is no separate `ffmpeg-core.worker.js` asset anymore.
+With `Emscripten 5.x`, pthread workers are loaded from `ffmpeg.js` itself, so there is no separate `ffmpeg.worker.js` asset anymore.
 
 ## Release flow
 
@@ -70,7 +70,7 @@ The release workflow will:
 3. Build `libvpx`
 4. Build `FFmpeg`
 5. Derive the final `ffmpeg` object graph from FFmpeg's generated `fftools/Makefile`
-6. Produce `ffmpeg-core.js` and `ffmpeg-core.wasm`
+6. Produce `ffmpeg.js` and `ffmpeg.wasm`
 7. Generate `manifest.json` and `SHA256SUMS`
 8. Publish the files as workflow artifacts and GitHub Release assets
 
@@ -81,7 +81,7 @@ The release workflow will:
 The WASM bundle is built in two layers:
 
 - `emconfigure ./configure` + `emmake make` let FFmpeg decide the compile graph for the pinned release.
-- A repository-owned final `emcc` link adds the runtime contract required by this package: `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegCore`, and the exact asset names expected by the JS runtime.
+- A repository-owned final `emcc` link adds the runtime contract required by this package: `MODULARIZE`, `EXPORT_ES6`, `EXPORT_NAME=createFFmpegModule`, and the exact asset names expected by the JS runtime.
 - `make release` refreshes both upstream checkouts to the exact pinned refs, cleans stale release outputs, and rebuilds from scratch.
 
 The important source of truth is FFmpeg's generated `fftools/Makefile`.
@@ -105,26 +105,26 @@ make release RELEASE_VERSION=dev
 
 The release build is expected to leave:
 
-- `dist/ffmpeg-core.js`
-- `dist/ffmpeg-core.wasm`
+- `dist/ffmpeg.js`
+- `dist/ffmpeg.wasm`
 - `dist/manifest.json`
 - `dist/SHA256SUMS`
 
-The release workflow also packages those files into `clip2sticker-core-<version>.tar.gz` for convenient downloading from GitHub Releases.
+The release workflow also packages those files into `clip2sticker-ffmpeg-<version>.tar.gz` for convenient downloading from GitHub Releases.
 
 ## Downloading a build
 
 Consumers of this package do not need to build FFmpeg locally.
 
 1. Open the repository's GitHub Releases page.
-2. Download `clip2sticker-core-<version>.tar.gz` or the individual assets.
+2. Download `clip2sticker-ffmpeg-<version>.tar.gz` or the individual assets.
 3. Host the extracted files under one public directory.
-4. Point `coreBaseUrl` at that directory.
+4. Point `ffmpegBaseUrl` at that directory.
 
 The minimum runtime payload is:
 
-- `ffmpeg-core.js`
-- `ffmpeg-core.wasm`
+- `ffmpeg.js`
+- `ffmpeg.wasm`
 - `manifest.json`
 
 ## SharedArrayBuffer requirements

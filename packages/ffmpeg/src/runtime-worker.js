@@ -1,36 +1,36 @@
 const STATE = {
   ffmpegModule: null,
-  coreBaseUrl: null,
+  ffmpegBaseUrl: null,
 };
 
-async function loadCore({ coreBaseUrl, threads }) {
-  if (!coreBaseUrl) {
-    throw new Error("coreBaseUrl is required");
+async function loadFFmpeg({ ffmpegBaseUrl, threads }) {
+  if (!ffmpegBaseUrl) {
+    throw new Error("ffmpegBaseUrl is required");
   }
 
   if (STATE.ffmpegModule) {
     return { loaded: true };
   }
 
-  STATE.coreBaseUrl = coreBaseUrl.endsWith("/")
-    ? coreBaseUrl
-    : `${coreBaseUrl}/`;
+  STATE.ffmpegBaseUrl = ffmpegBaseUrl.endsWith("/")
+    ? ffmpegBaseUrl
+    : `${ffmpegBaseUrl}/`;
 
   globalThis.Module = {
     locateFile(path) {
-      return new URL(path, STATE.coreBaseUrl).toString();
+      return new URL(path, STATE.ffmpegBaseUrl).toString();
     },
-    mainScriptUrlOrBlob: new URL("ffmpeg-core.js", STATE.coreBaseUrl).toString(),
+    mainScriptUrlOrBlob: new URL("ffmpeg.js", STATE.ffmpegBaseUrl).toString(),
     pthreadPoolSize: Math.max(1, threads || 2),
   };
 
-  const coreModule = await import(
-    new URL("ffmpeg-core.js", STATE.coreBaseUrl).toString()
+  const ffmpegModule = await import(
+    new URL("ffmpeg.js", STATE.ffmpegBaseUrl).toString()
   );
-  const factory = coreModule.default || coreModule.createFFmpegCore;
+  const factory = ffmpegModule.default || ffmpegModule.createFFmpegModule;
 
   if (typeof factory !== "function") {
-    throw new Error("FFmpeg core factory was not found");
+    throw new Error("FFmpeg factory was not found");
   }
 
   STATE.ffmpegModule = await factory(globalThis.Module);
@@ -58,7 +58,7 @@ async function transcode({
   outputName,
 }) {
   if (!STATE.ffmpegModule) {
-    throw new Error("Core is not loaded");
+    throw new Error("FFmpeg is not loaded");
   }
 
   unlinkIfExists(inputName);
@@ -112,7 +112,7 @@ globalThis.addEventListener("message", async (event) => {
 
     switch (type) {
       case "load":
-        result = await loadCore(payload);
+        result = await loadFFmpeg(payload);
         break;
       case "transcode":
         result = await transcode(payload);

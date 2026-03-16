@@ -12,7 +12,7 @@ LIBVPX_DIR := $(WORK_DIR)/libvpx
 FFMPEG_REF ?= n8.0
 LIBVPX_REF ?= v1.16.0
 EMSCRIPTEN_VERSION ?= 5.0.2
-DOCKER_IMAGE ?= clip2sticker-core-build:emsdk-$(EMSCRIPTEN_VERSION)
+DOCKER_IMAGE ?= clip2sticker-ffmpeg-build:emsdk-$(EMSCRIPTEN_VERSION)
 
 FFMPEG_COMMON_CFLAGS := -O3 -msimd128 -pthread
 FFMPEG_COMMON_LDFLAGS := -O3 -msimd128 -pthread -sUSE_PTHREADS=1
@@ -191,8 +191,8 @@ build-ffmpeg: build-libvpx
 		-s ALLOW_MEMORY_GROWTH=1 \
 		-s INITIAL_MEMORY=268435456 \
 		-s EXPORTED_RUNTIME_METHODS=FS,callMain \
-		-s EXPORT_NAME=createFFmpegCore \
-		-o "$(DIST_DIR)/ffmpeg-core.js" \
+		-s EXPORT_NAME=createFFmpegModule \
+		-o "$(DIST_DIR)/ffmpeg.js" \
 		"$${FFMPEG_OBJECTS[@]}" \
 		-L"$(PREFIX_DIR)/lib" \
 		libavcodec/libavcodec.a \
@@ -201,8 +201,8 @@ build-ffmpeg: build-libvpx
 		libswscale/libswscale.a \
 		libavutil/libavutil.a \
 		"$(PREFIX_DIR)/lib/libvpx.a"
-	test -f "$(DIST_DIR)/ffmpeg-core.js"
-	test -f "$(DIST_DIR)/ffmpeg-core.wasm"
+	test -f "$(DIST_DIR)/ffmpeg.js"
+	test -f "$(DIST_DIR)/ffmpeg.wasm"
 
 manifest: build-ffmpeg
 	RELEASE_VERSION="$${RELEASE_VERSION:-dev}" \

@@ -1,4 +1,4 @@
-name: release-core
+name: release-ffmpeg
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-core-${{ github.ref }}
+  group: release-ffmpeg-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: make test
+        run: make -C packages/ffmpeg test
 
   build-release:
     needs: test
@@ -45,7 +45,7 @@ jobs:
       FFMPEG_REF: n8.0
       LIBVPX_REF: v1.16.0
       EMSCRIPTEN_VERSION: 5.0.2
-      DOCKER_IMAGE: clip2sticker-core-build:ci
+      DOCKER_IMAGE: clip2sticker-ffmpeg-build:ci
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -59,7 +59,7 @@ jobs:
             release_version="manual-${GITHUB_SHA::12}"
           fi
 
-          archive_name="clip2sticker-core-${release_version}.tar.gz"
+          archive_name="clip2sticker-ffmpeg-${release_version}.tar.gz"
 
           {
             echo "release_version=${release_version}"
@@ -72,7 +72,7 @@ jobs:
       - name: Build cached toolchain image
         uses: docker/build-push-action@v7
         with:
-          context: packages/ffmpeg-core
+          context: packages/ffmpeg
           load: true
           tags: ${{ env.DOCKER_IMAGE }}
           cache-from: type=gha
@@ -81,13 +81,13 @@ jobs:
       - name: Run release build
         env:
           RELEASE_VERSION: ${{ steps.meta.outputs.release_version }}
-        run: make docker-release SKIP_DOCKER_BUILD=1 DOCKER_IMAGE="$DOCKER_IMAGE"
+        run: make -C packages/ffmpeg docker-release SKIP_DOCKER_BUILD=1 DOCKER_IMAGE="$DOCKER_IMAGE"
 
       - name: Verify release payload
-        run: node packages/ffmpeg-core/scripts/verify-release.mjs packages/ffmpeg-core/dist
+        run: node packages/ffmpeg/scripts/verify-release.mjs packages/ffmpeg/dist
 
       - name: Package release archive
-        run: tar -C packages/ffmpeg-core/dist -czf "${{ steps.meta.outputs.archive_name }}" ffmpeg-core.js ffmpeg-core.wasm manifest.json SHA256SUMS
+        run: tar -C packages/ffmpeg/dist -czf "${{ steps.meta.outputs.archive_name }}" ffmpeg.js ffmpeg.wasm manifest.json SHA256SUMS
 
       - name: Upload configure logs on failure
         if: failure()
@@ -95,19 +95,19 @@ jobs:
         with:
           name: configure-logs-${{ steps.meta.outputs.release_version }}
           path: |
-            packages/ffmpeg-core/build/ffmpeg/config.log
-            packages/ffmpeg-core/build/libvpx/config.log
+            packages/ffmpeg/build/ffmpeg/config.log
+            packages/ffmpeg/build/libvpx/config.log
           if-no-files-found: ignore
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
         with:
-          name: clip2sticker-core-${{ steps.meta.outputs.release_version }}
+          name: clip2sticker-ffmpeg-${{ steps.meta.outputs.release_version }}
           path: |
-            packages/ffmpeg-core/dist/ffmpeg-core.js
-            packages/ffmpeg-core/dist/ffmpeg-core.wasm
-            packages/ffmpeg-core/dist/manifest.json
-            packages/ffmpeg-core/dist/SHA256SUMS
+            packages/ffmpeg/dist/ffmpeg.js
+            packages/ffmpeg/dist/ffmpeg.wasm
+            packages/ffmpeg/dist/manifest.json
+            packages/ffmpeg/dist/SHA256SUMS
             ${{ steps.meta.outputs.archive_name }}
           if-no-files-found: error
           retention-days: 14
@@ -116,14 +116,14 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          name: clip2sticker-core ${{ steps.meta.outputs.release_version }}
+          name: clip2sticker-ffmpeg ${{ steps.meta.outputs.release_version }}
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            packages/ffmpeg-core/dist/ffmpeg-core.js
-            packages/ffmpeg-core/dist/ffmpeg-core.wasm
-            packages/ffmpeg-core/dist/manifest.json
-            packages/ffmpeg-core/dist/SHA256SUMS
+            packages/ffmpeg/dist/ffmpeg.js
+            packages/ffmpeg/dist/ffmpeg.wasm
+            packages/ffmpeg/dist/manifest.json
+            packages/ffmpeg/dist/SHA256SUMS
             ${{ steps.meta.outputs.archive_name }}
           fail_on_unmatched_files: true

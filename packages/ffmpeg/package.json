@@ -1,5 +1,5 @@
 {
-  "name": "@clip2sticker/ffmpeg-core",
+  "name": "@clip2sticker/ffmpeg",
   "version": "0.1.0",
   "description": "Reusable FFmpeg WASM build and browser runtime for clip2sticker.",
   "type": "module",

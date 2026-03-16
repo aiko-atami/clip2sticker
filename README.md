@@ -5,37 +5,35 @@
 This repository now contains two distinct deliverables in one codebase:
 
 - `apps/web` contains the first-party frontend application.
-- `packages/ffmpeg-core` contains the reusable FFmpeg WebAssembly build, browser runtime, and downloadable release assets.
-
-This keeps the product and the infrastructure together without pretending the whole repository is only a WASM build pipeline.
+- `packages/ffmpeg` contains the reusable FFmpeg WebAssembly build, browser runtime, and downloadable release assets.
 
 ## Repository layout
 
 ```text
 apps/
-  web/                  official browser UI
+  web/                  UI
 packages/
-  ffmpeg-core/          FFmpeg WASM build + runtime + release artifacts
+  ffmpeg/               FFmpeg WASM build + runtime + release artifacts
 ```
 
 ## Intended usage
 
 If you want the full product, start from `apps/web`.
 
-If you want to build your own UI, use `packages/ffmpeg-core` directly or download its release artifacts from GitHub Releases:
+If you want to build your own UI, use `packages/ffmpeg` directly or download its release artifacts from GitHub Releases:
 
-- `ffmpeg-core.js`
-- `ffmpeg-core.wasm`
+- `ffmpeg.js`
+- `ffmpeg.wasm`
 - `manifest.json`
 
 ## Workspace commands
 
-The root workspace keeps lightweight proxy commands for the core package:
+Run tests for the reusable core package from the workspace root:
 
 ```bash
 npm test
-make test
-make docker-release RELEASE_VERSION=dev
+make -C packages/ffmpeg test
+make -C packages/ffmpeg docker-release RELEASE_VERSION=dev
 ```
 
-For the package-specific build and release details, see [packages/ffmpeg-core/README.md](/home/xs/aiko/clip2sticker/packages/ffmpeg-core/README.md).
+For the package-specific build and release details, see [packages/ffmpeg/README.md](/home/xs/aiko/clip2sticker/packages/ffmpeg/README.md).

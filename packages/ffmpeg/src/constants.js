@@ -20,8 +20,8 @@ export const FILTERS = Object.freeze({
 });
 
 export const RELEASE_FILES = Object.freeze([
-  "ffmpeg-core.js",
-  "ffmpeg-core.wasm",
+  "ffmpeg.js",
+  "ffmpeg.wasm",
   "manifest.json",
   "SHA256SUMS",
 ]);

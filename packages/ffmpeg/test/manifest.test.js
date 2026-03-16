@@ -9,7 +9,7 @@ test("buildManifest records release metadata and runtime requirements", () => {
     libvpxRef: "v1.16.0",
     emscriptenVersion: "5.0.2",
     assetHashes: {
-      "ffmpeg-core.js": "abc",
+      "ffmpeg.js": "abc",
     },
     buildDate: "2026-03-15T00:00:00.000Z",
   });
@@ -20,5 +20,5 @@ test("buildManifest records release metadata and runtime requirements", () => {
     manifest.runtime.headers["Cross-Origin-Embedder-Policy"],
     "require-corp",
   );
-  assert.equal(manifest.files.find((file) => file.name === "ffmpeg-core.js").sha256, "abc");
+  assert.equal(manifest.files.find((file) => file.name === "ffmpeg.js").sha256, "abc");
 });

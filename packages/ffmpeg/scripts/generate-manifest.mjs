@@ -13,7 +13,7 @@ async function hashFile(filePath) {
 
 async function main() {
   const assetHashes = {};
-  for (const name of ["ffmpeg-core.js", "ffmpeg-core.wasm"]) {
+  for (const name of ["ffmpeg.js", "ffmpeg.wasm"]) {
     const absolutePath = path.join(releaseDir, name);
     try {
       assetHashes[name] = await hashFile(absolutePath);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createClip2StickerCore } from "../src/index.js";
+import { createClip2StickerFFmpeg } from "../src/index.js";
 
 class FakeWorker {
   constructor() {
@@ -42,13 +42,13 @@ class FakeWorker {
 
 test("runtime posts load and transcode messages through worker adapter", async () => {
   const fakeWorker = new FakeWorker();
-  const core = createClip2StickerCore({
+  const ffmpeg = createClip2StickerFFmpeg({
     workerFactory: () => fakeWorker,
     threads: 3,
   });
 
-  await core.load();
-  const result = await core.transcode({
+  await ffmpeg.load();
+  const result = await ffmpeg.transcode({
     input: new Uint8Array([1, 2, 3]),
     inputName: "input.mp4",
     fitMode: "contain",
@@ -61,4 +61,3 @@ test("runtime posts load and transcode messages through worker adapter", async (
   assert.deepEqual(Array.from(result.output), [1, 2, 3]);
   assert.equal(result.outputName, "output.webm");
 });
-
