@@ -6,6 +6,8 @@ ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 WORK_DIR ?= $(ROOT_DIR)/build
 DIST_DIR ?= $(ROOT_DIR)/dist
 PREFIX_DIR := $(WORK_DIR)/prefix
+# Keep libvpx cache outside PREFIX_DIR so clean-dist can reset release outputs without forcing a rebuild.
+LIBVPX_CACHE_ROOT := $(WORK_DIR)/cache/libvpx
 FFMPEG_DIR := $(WORK_DIR)/ffmpeg
 LIBVPX_DIR := $(WORK_DIR)/libvpx
 
@@ -43,7 +45,7 @@ test:
 	npm test
 
 build-image:
-	docker build --tag "$(DOCKER_IMAGE)" .
+	DOCKER_BUILDKIT=1 docker build --tag "$(DOCKER_IMAGE)" .
 
 docker-release: $(if $(SKIP_DOCKER_BUILD),,build-image)
 	docker run --rm \
@@ -71,6 +73,15 @@ refresh-sources:
 	@$(call refresh_checkout,https://github.com/FFmpeg/FFmpeg.git,$(FFMPEG_REF),$(FFMPEG_DIR))
 
 build-libvpx: refresh-sources clean-dist
+	mkdir -p "$(LIBVPX_CACHE_ROOT)"
+	LIBVPX_CACHE_KEY="$$(node -e 'const crypto = require("node:crypto"); process.stdout.write(crypto.createHash("sha256").update(process.argv[1]).digest("hex"));' '$(LIBVPX_REF)|$(EMSCRIPTEN_VERSION)|$(LIBVPX_COMMON_CFLAGS)')"
+	LIBVPX_CACHE_DIR="$(LIBVPX_CACHE_ROOT)/$$LIBVPX_CACHE_KEY"
+	LIBVPX_CACHE_PREFIX_DIR="$$LIBVPX_CACHE_DIR/prefix"
+	if [[ -f "$$LIBVPX_CACHE_PREFIX_DIR/lib/libvpx.a" ]]; then
+		echo "Restoring libvpx from cache: $$LIBVPX_CACHE_KEY"
+		cp -a "$$LIBVPX_CACHE_PREFIX_DIR"/. "$(PREFIX_DIR)/"
+		exit 0
+	fi
 	cd "$(LIBVPX_DIR)"
 	export CC=emcc
 	export CXX=em++
@@ -108,6 +119,9 @@ build-libvpx: refresh-sources clean-dist
 		--disable-vp9-decoder
 	emmake make -j"$$(nproc)"
 	emmake make install
+	rm -rf "$$LIBVPX_CACHE_DIR"
+	mkdir -p "$$LIBVPX_CACHE_PREFIX_DIR"
+	cp -a "$(PREFIX_DIR)"/. "$$LIBVPX_CACHE_PREFIX_DIR"/
 
 build-ffmpeg: build-libvpx
 	cd "$(FFMPEG_DIR)"
