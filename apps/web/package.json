@@ -1,7 +1,16 @@
 {
-  "name": "@clip2sticker/web",
-  "private": true,
+  "name": "web",
   "version": "0.1.0",
-  "description": "First-party browser UI for clip2sticker.",
-  "type": "module"
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "dev": "vp dev",
+    "preview": "vp preview",
+    "build": "tsc && vp build"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite-plus": "latest"
+  }
 }

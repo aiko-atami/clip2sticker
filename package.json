@@ -1,13 +1,10 @@
 {
-    "name": "clip2sticker",
-    "private": true,
-    "type": "module",
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
-    "scripts": {
-        "test": "npm run test --workspace @clip2sticker/ffmpeg",
-        "test:ffmpeg": "npm run test --workspace @clip2sticker/ffmpeg"
-    }
+  "name": "clip2sticker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pnpm --filter @clip2sticker/ffmpeg test",
+    "test:ffmpeg": "pnpm --filter @clip2sticker/ffmpeg test"
+  },
+  "packageManager": "pnpm@10.32.1"
 }
